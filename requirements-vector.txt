@@ -1,0 +1,5 @@
+# 向量搜索依赖 - 本地免费版
+# 安装命令: pip install -r requirements.txt
+
+chromadb>=0.4.0
+sentence-transformers>=2.2.0

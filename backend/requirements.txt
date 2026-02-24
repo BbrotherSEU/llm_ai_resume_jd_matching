@@ -1,0 +1,15 @@
+# PDF Parsing and Text Extraction
+pdfminer.six>=20221105
+PyMuPDF>=1.23.0
+
+# FastAPI Framework
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Utilities
+python-dotenv>=1.0.0
+pydantic>=2.5.0
+
+# OpenCode SDK
+opencode-ai>=0.1.0

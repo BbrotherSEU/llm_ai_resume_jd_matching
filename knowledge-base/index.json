@@ -1,0 +1,43 @@
+{
+  "version": "1.0",
+  "description": "知识库索引 - 快速查找所有知识库文件",
+  "files": {
+    "skills_mapping": {
+      "path": "./knowledge-base/skills-mapping.json",
+      "description": "技能名称映射和归一化",
+      "usage": "将简历中的技能名称标准化为统一格式"
+    },
+    "company_info": {
+      "path": "./knowledge-base/company-info.json",
+      "description": "公司技术栈和职级定义",
+      "usage": "查询公司技术偏好、职级要求和薪资范围"
+    },
+    "scoring_standards": {
+      "path": "./knowledge-base/scoring-standards.json",
+      "description": "评分标准和风险规则",
+      "usage": "统一评估尺度和检测异常"
+    },
+    "vector_config": {
+      "path": "./knowledge-base/vector-config.json",
+      "description": "向量搜索配置（Chroma本地版）",
+      "usage": "语义匹配和技能检索"
+    }
+  },
+  "vector_search": {
+    "script": "./vector_search.py",
+    "description": "本地向量搜索工具（Chroma + bge-small-zh）",
+    "usage": "技能语义匹配，无需API Key",
+    "commands": {
+      "build_index": "python vector_search.py --index",
+      "search": "python vector_search.py --search '技能名称'",
+      "find_standard": "python vector_search.py --find 'Go'",
+      "interactive": "python vector_search.py --interactive"
+    }
+  },
+  "usage_guide": {
+    "step1": "使用 skills_mapping 将技能名称标准化",
+    "step2": "使用 company_info 识别公司背景",
+    "step3": "使用 scoring_standards 进行统一评分",
+    "step4": "使用 vector_search.py 进行语义匹配"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "version": "1.0",
+  "description": "向量搜索配置 - 支持语义匹配和技能检索（本地免费版）",
+  "enabled": true,
+  "embedding": {
+    "provider": "local",
+    "model": "bge-small-zh-v1.5",
+    "dimensions": 512,
+    "batch_size": 32,
+    "options": {
+      "model_name": "BAAI/bge-small-zh-v1.5"
+    }
+  },
+  "index": {
+    "type": "chroma",
+    "persist_directory": "./vector-store",
+    "collection_name": "resume_screening"
+  },
+  "search": {
+    "top_k": 5,
+    "similarity_threshold": 0.7,
+    "rerank": false
+  },
+  "fields": {
+    "jd": {
+      "chunk_size": 500,
+      "metadata": ["jobTitle", "requiredSkills", "experienceYears"]
+    },
+    "resume": {
+      "chunk_size": 800,
+      "metadata": ["name", "experience", "skills"]
+    }
+  },
+  "skill_synonyms": {
+    "enabled": true,
+    "file": "./knowledge-base/skills-mapping.json"
+  },
+  "preprocessing": {
+    "lowercase": true,
+    "remove_punctuation": false,
+    "stemming": false,
+    "stopwords": ["的", "了", "在", "是", "我", "有", "和", "就", "不", "人"]
+  }
+}

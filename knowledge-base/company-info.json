@@ -1,0 +1,122 @@
+{
+  "version": "1.0",
+  "description": "公司技术栈知识库 - 记录各公司技术偏好和职级定义",
+  "companies": {
+    "字节跳动": {
+      "aliases": ["字节", "bytedance", "tiktok", "抖音", "今日头条"],
+      "primaryTech": ["Go", "Java", "Kafka", "Redis", "Elasticsearch", "Flink"],
+      "preferredSkills": ["微服务", "分布式", "高并发", "推荐系统", "机器学习"],
+      "techLevel": "先进",
+      "workStyle": "快节奏"
+    },
+    "阿里巴巴": {
+      "aliases": ["阿里", "alibaba", "淘宝", "天猫", "支付宝"],
+      "primaryTech": ["Java", "Spring Boot", "Dubbo", "RocketMQ", "MySQL", "OceanBase"],
+      "preferredSkills": ["电商", "双11", "高并发", "分布式架构", "Java技术栈"],
+      "techLevel": "先进",
+      "workStyle": "快节奏"
+    },
+    "腾讯": {
+      "aliases": ["腾讯", "tencent", "微信", "QQ"],
+      "primaryTech": ["C++", "Go", "Python", "MongoDB", "Redis", "HBase"],
+      "preferredSkills": ["即时通讯", "社交", "海量存储", "高并发"],
+      "techLevel": "先进",
+      "workStyle": "适中"
+    },
+    "百度": {
+      "aliases": ["百度", "baidu"],
+      "primaryTech": ["Python", "Go", "C++", "TensorFlow", "PaddlePaddle", "大数据"],
+      "preferredSkills": ["AI", "搜索", "自动驾驶", "深度学习", "NLP"],
+      "techLevel": "先进",
+      "workStyle": "适中"
+    },
+    "美团": {
+      "aliases": ["美团", "meituan"],
+      "primaryTech": ["Java", "Go", "MySQL", "Redis", "Hadoop", "Flink"],
+      "preferredSkills": ["本地生活", "O2O", "配送系统", "大数据"],
+      "techLevel": "中上",
+      "workStyle": "快节奏"
+    },
+    "拼多多": {
+      "aliases": ["拼多多", "pinduoduo"],
+      "primaryTech": ["Java", "Go", "MySQL", "Redis", "Kafka"],
+      "preferredSkills": ["电商", "社交电商", "高并发", "低成本架构"],
+      "techLevel": "中上",
+      "workStyle": "快节奏"
+    },
+    "京东": {
+      "aliases": ["京东", "jd", "jd.com"],
+      "primaryTech": ["Java", "Spring Boot", "Dubbo", "MySQL", "Redis"],
+      "preferredSkills": ["电商", "物流", "供应链", "分布式"],
+      "techLevel": "中上",
+      "workStyle": "适中"
+    },
+    "网易": {
+      "aliases": ["网易", "netease", "163"],
+      "primaryTech": ["Java", "Go", "MySQL", "MongoDB", "Redis"],
+      "preferredSkills": ["游戏", "教育", "音乐", "邮箱"],
+      "techLevel": "中等",
+      "workStyle": "适中"
+    },
+    "滴滴": {
+      "aliases": ["滴滴", "didi", "出行"],
+      "primaryTech": ["Java", "Go", "Spark", "Flink", "MySQL", "Redis"],
+      "preferredSkills": ["出行", "地图", "实时调度", "大数据"],
+      "techLevel": "中上",
+      "workStyle": "快节奏"
+    },
+    "快手": {
+      "aliases": ["快手", "kuaishou", "ks"],
+      "primaryTech": ["Go", "Java", "Kafka", "Flink", "Elasticsearch"],
+      "preferredSkills": ["短视频", "直播", "推荐系统", "视频处理"],
+      "techLevel": "先进",
+      "workStyle": "快节奏"
+    },
+    "小红书": {
+      "aliases": ["小红书", "xhs", "xiaohongshu"],
+      "primaryTech": ["Go", "Java", "Spring Boot", "Kafka", "Elasticsearch"],
+      "preferredSkills": ["社交", "内容平台", "推荐", "UGC"],
+      "techLevel": "中上",
+      "workStyle": "快节奏"
+    },
+    "B站": {
+      "aliases": ["B站", "bilibili", "哔哩哔哩"],
+      "primaryTech": ["Go", "Java", "MySQL", "Redis", "Kafka"],
+      "preferredSkills": ["视频", "直播", "弹幕", "社区"],
+      "techLevel": "中上",
+      "workStyle": "适中"
+    }
+  },
+  "level_definitions": {
+    "校招-初级": {
+      "experience": "0-2年",
+      "expectedSkills": ["基础编程", "数据结构", "算法"],
+      "score": 60
+    },
+    "初中级工程师": {
+      "experience": "2-3年",
+      "expectedSkills": ["独立开发", "基础架构", "基本性能优化"],
+      "score": 70
+    },
+    "中级工程师": {
+      "experience": "3-5年",
+      "expectedSkills": ["系统设计", "性能优化", "技术方案"],
+      "score": 75
+    },
+    "高级工程师": {
+      "experience": "5-8年",
+      "expectedSkills": ["架构设计", "团队指导", "复杂问题解决"],
+      "score": 85
+    },
+    "技术专家": {
+      "experience": "8-10年",
+      "expectedSkills": ["技术规划", "架构演进", "团队建设"],
+      "score": 90
+    },
+    "技术总监": {
+      "experience": "10年+",
+      "expectedSkills": ["技术战略", "业务理解", "组织建设"],
+      "score": 95
+    }
+  }
+}

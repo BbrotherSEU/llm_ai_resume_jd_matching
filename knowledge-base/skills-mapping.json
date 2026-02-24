@@ -1,0 +1,86 @@
+{
+  "version": "1.0",
+  "description": "技能映射知识库 - 统一技能名称，关联相似技能",
+  "categories": {
+    "编程语言": {
+      "golang": ["go", "golang", "go语言", "Golang"],
+      "javascript": ["js", "javascript", "前端", "ECMAScript"],
+      "typescript": ["ts", "typescript", "TS"],
+      "python": ["python", "py", "python3"],
+      "java": ["java", "Java", "jdk"],
+      "rust": ["rust", "Rust"],
+      "cpp": ["c++", "cpp", "C++"],
+      "c#": ["csharp", "c#", "C#", ".net"],
+      "php": ["php", "PHP"],
+      "swift": ["swift", "iOS"],
+      "kotlin": ["kotlin", "android"]
+    },
+    "框架": {
+      "spring-boot": ["springboot", "spring boot", "Spring", "SpringBoot", "spring"],
+      "react": ["react", "React", "react.js", "ReactJS"],
+      "vue": ["vue", "Vue", "vue.js", "VueJS", "vue3"],
+      "angular": ["angular", "Angular", "ng"],
+      "next.js": ["nextjs", "next.js", "Next.js", "next"],
+      "express": ["express", "Express", "nodejs后端"],
+      "django": ["django", "Django", "python web"],
+      "flask": ["flask", "Flask", "python后端"],
+      "gin": ["gin", "Gin", "go web"],
+      "fastapi": ["fastapi", "FastAPI", "python api"]
+    },
+    "数据库": {
+      "mysql": ["mysql", "MySQL", "mysql数据库", "sql"],
+      "postgresql": ["postgresql", "postgres", "pg", "PostgreSQL"],
+      "mongodb": ["mongo", "mongodb", "MongoDB", "nosql"],
+      "redis": ["redis", "Redis", "缓存", "键值存储"],
+      "elasticsearch": ["es", "elasticsearch", "ElasticSearch", "搜索", "全文检索"],
+      "kafka": ["kafka", "Kafka", "消息队列", "mq"],
+      "hbase": ["hbase", "HBase", "hadoop"],
+      "clickhouse": ["clickhouse", "ClickHouse", "OLAP"]
+    },
+    "云服务": {
+      "aws": ["aws", "AWS", "亚马逊云", "亚马逊aws"],
+      "gcp": ["gcp", "GCP", "google cloud", "谷歌云"],
+      "azure": ["azure", "Azure", "微软云"],
+      "阿里云": ["阿里云", "aliyun", "Aliyun", "ecs", "oss"],
+      "腾讯云": ["腾讯云", "tencent cloud", "qcloud"]
+    },
+    "容器与编排": {
+      "docker": ["docker", "Docker", "容器"],
+      "kubernetes": ["k8s", "kubernetes", "K8s", "kubesphere"],
+      "helm": ["helm", "Helm", "chart"],
+      "istio": ["istio", "Istio", "service mesh", "服务网格"]
+    },
+    "大数据": {
+      "hadoop": ["hadoop", "Hadoop", "hdfs", "mapreduce"],
+      "spark": ["spark", "Spark", "pyspark"],
+      "flink": ["flink", "Flink", "实时计算"],
+      "hive": ["hive", "Hive", "数据仓库"]
+    },
+    "机器学习": {
+      "tensorflow": ["tensorflow", "TF", "tf"],
+      "pytorch": ["pytorch", "PyTorch", "torch"],
+      "sklearn": ["sklearn", "scikit-learn", "机器学习"],
+      "paddlepaddle": ["paddle", "飞桨", "PaddlePaddle"],
+      "xgboost": ["xgboost", "XGBoost"]
+    },
+    "devops": {
+      "jenkins": ["jenkins", "Jenkins", "ci/cd"],
+      "gitlab-ci": ["gitlab ci", "gitlab-ci", "GitLab"],
+      "github-actions": ["github actions", "github-actions", "CI"],
+      "terraform": ["terraform", "Terraform", "IaC", "基础设施即代码"],
+      "ansible": ["ansible", "Ansible", "自动化运维"],
+      "nginx": ["nginx", "Nginx", "反向代理", "负载均衡"]
+    },
+    "软技能": {
+      "项目管理": ["项目管理", "project management", "pm", "项目经理"],
+      "团队管理": ["团队管理", "team lead", "技术管理", "管理"],
+      "架构设计": ["架构设计", "系统设计", "architecture", "架构师"],
+      "沟通能力": ["沟通", "沟通能力", "跨团队", "协作"]
+    }
+  },
+  "proficiency_levels": {
+    "精通": ["精通", "expert", "熟练", "精通", "master"],
+    "熟悉": ["熟悉", "proficient", "熟悉", "掌握"],
+    "了解": ["了解", "了解", "knowledge", "入门", "接触过"]
+  }
+}

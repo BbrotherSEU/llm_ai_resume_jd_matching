@@ -1,0 +1,143 @@
+{
+  "version": "1.0",
+  "description": "评分标准知识库 - 统一评估尺度和标准",
+  "proficiency_scoring": {
+    "精通": {
+      "minYears": 3,
+      "description": "能独立完成复杂系统设计，指导他人",
+      "score": 100,
+      "keywords": ["精通", "熟练", "专家", "expert", "master"]
+    },
+    "熟悉": {
+      "minYears": 2,
+      "description": "能独立完成功能开发，解决常见问题",
+      "score": 80,
+      "keywords": ["熟悉", "掌握", "proficient", "熟练使用"]
+    },
+    "了解": {
+      "minYears": 0.5,
+      "description": "能参与简单模块开发",
+      "score": 50,
+      "keywords": ["了解", "熟悉", "入门", "接触过", "knowledge"]
+    }
+  },
+  "experience_scoring": {
+    "exact_match": {
+      "description": "完全符合要求年限",
+      "score": 100,
+      "range": "±1年"
+    },
+    "overqualified": {
+      "description": "超过要求年限",
+      "score": 90,
+      "range": "+1~2年"
+    },
+    "highly_overqualified": {
+      "description": "大幅超过要求（可能overkill）",
+      "score": 75,
+      "range": "+3年以上"
+    },
+    "underqualified": {
+      "description": "略低于要求",
+      "score": 60,
+      "range": "-1~2年"
+    },
+    "significantly_under": {
+      "description": "明显低于要求",
+      "score": 30,
+      "range": "-2年以上"
+    }
+  },
+  "education_scoring": {
+    "博士": {
+      "baseScore": 100,
+      "adjustments": {
+        "相关经验<3年": -10
+      }
+    },
+    "硕士": {
+      "baseScore": 95,
+      "adjustments": {
+        "相关专业": 0,
+        "非相关专业": -5
+      }
+    },
+    "本科": {
+      "baseScore": 90,
+      "adjustments": {
+        "985/211": 5,
+        "普通": 0
+      }
+    },
+    "大专": {
+      "baseScore": 70,
+      "adjustments": {
+        "相关经验丰富": 10
+      }
+    }
+  },
+  "company_bonus": {
+    "一线大厂": {
+      "companies": ["字节跳动", "阿里巴巴", "腾讯", "百度", "美团", "京东"],
+      "bonus": 10,
+      "reason": "头部互联网公司经历"
+    },
+    "知名外企": {
+      "companies": ["Google", "Microsoft", "Amazon", "Meta", "Apple"],
+      "bonus": 15,
+      "reason": "国际大厂经验"
+    },
+    "明星创业公司": {
+      "companies": ["小红书", "快手", "B站", "滴滴", "拼多多"],
+      "bonus": 8,
+      "reason": "快速成长公司经历"
+    }
+  },
+  "red_flags": {
+    "high_risk": [
+      {
+        "pattern": "日均请求量.*10亿",
+        "severity": "高",
+        "description": "数据过于夸张"
+      },
+      {
+        "pattern": "薪资要求.*低于市场价50%",
+        "severity": "高",
+        "description": "薪资异常低可能有问题"
+      },
+      {
+        "pattern": "3年.*10个项目",
+        "severity": "中",
+        "description": "项目经验过于丰富"
+      }
+    ],
+    "medium_risk": [
+      {
+        "pattern": "精通.*10.*语言",
+        "severity": "中",
+        "description": "技能过于全面"
+      },
+      {
+        "pattern": "创业公司.*无公司名",
+        "severity": "中",
+        "description": "经历描述模糊"
+      }
+    ]
+  },
+  "salary_ranges": {
+    "一线城市": {
+      "初中级": [15, 25],
+      "中级": [25, 35],
+      "高级": [35, 50],
+      "专家": [50, 70],
+      "总监": [70, 100]
+    },
+    "二线城市": {
+      "初中级": [10, 18],
+      "中级": [18, 28],
+      "高级": [28, 40],
+      "专家": [40, 55],
+      "总监": [55, 80]
+    }
+  }
+}

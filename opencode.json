@@ -1,0 +1,33 @@
+{
+  "plugin": [
+    "zenox"
+  ],
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "orchestrator": {
+      "description": "HR简历筛选系统协调器",
+      "mode": "primary",
+      "prompt": "{file:.opencode/agents/orchestrator.md}"
+    },
+    "jd-analyzer": {
+      "description": "分析职位描述(JD)，提取关键技能要求、工作职责、任职资格",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/agents/jd-analyzer.md}"
+    },
+    "resume-parser": {
+      "description": "解析简历内容，提取候选人基本信息、工作经历、教育背景、技能列表",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/agents/resume-parser.md}"
+    },
+    "matcher": {
+      "description": "根据JD要求和简历信息，计算匹配度评分并给出匹配理由",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/agents/matcher.md}"
+    },
+    "fraud-detector": {
+      "description": "检测简历中的不合理之处、作弊行为、虚假信息",
+      "mode": "subagent",
+      "prompt": "{file:.opencode/agents/fraud-detector.md}"
+    }
+  }
+}
