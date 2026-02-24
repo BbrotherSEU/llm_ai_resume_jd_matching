@@ -133,6 +133,12 @@ class PDFParser:
     
     def _parse_with_pdfminer(self, content: bytes) -> str:
         """使用 pdfminer.six 解析"""
+        if not self.pdfminer:
+            raise PDFParseError("pdfminer不可用")
+        
+        LAParams = self.pdfminer['LAParams']
+        extract_text = self.pdfminer['extract_text']
+        
         laparams = LAParams(
             line_margin=0.5,
             word_margin=0.1,
@@ -140,7 +146,7 @@ class PDFParser:
             detect_vertical=False
         )
         
-        # 将 bytes 转为 StringIO
+        # 将 bytes 转为 BytesIO
         pdf_stream = io.BytesIO(content)
         text = extract_text(pdf_stream, laparams=laparams)
         
@@ -154,8 +160,11 @@ class PDFParser:
     
     def _parse_with_pymupdf(self, content: bytes) -> str:
         """使用 PyMuPDF 解析"""
+        if not self.pymupdf:
+            raise PDFParseError("PyMuPDF不可用")
+        
         pdf_stream = io.BytesIO(content)
-        doc = fitz.open(stream=pdf_stream, filetype="pdf")
+        doc = self.pymupdf.open(stream=pdf_stream, filetype="pdf")
         
         text_parts = []
         for page_num in range(len(doc)):
