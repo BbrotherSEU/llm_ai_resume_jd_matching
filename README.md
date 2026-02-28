@@ -10,19 +10,19 @@
 │                    协调整个筛选流程                           │
 └─────────────────────────────────────────────────────────────┘
                                │
-         ┌─────────────────────┼─────────────────────┐
-         ▼                     ▼                     ▼
+       ┌───────────────────────┼───────────────────────┐
+       ▼                       ▼                       ▼
 ┌───────────────┐    ┌───────────────┐    ┌───────────────┐
 │  JD Analyzer  │    │Resume Parser  │    │ Fraud Detector│
 │  分析职位描述  │    │   解析简历    │    │   检测异常    │
 └───────────────┘    └───────────────┘    └───────────────┘
-         │                     │                     │
-         └─────────────────────┼─────────────────────┘
+       │                     │                     │
+       └─────────────────────┼─────────────────────┘
                                ▼
-                     ┌───────────────┐
-                     │    Matcher    │
-                     │   计算匹配度   │
-                     └───────────────┘
+                      ┌───────────────┐
+                      │    Matcher    │
+                      │   计算匹配度   │
+                      └───────────────┘
 ```
 
 ## 功能特性
@@ -32,23 +32,43 @@
 - **欺诈检测** - 检测简历中的异常信息和虚假内容
 - **Web界面** - 友好的Web UI界面，支持文件拖拽上传
 - **REST API** - 提供完整的API接口，支持二次开发
+- **模型来源显示** - 清晰展示结果来自AI大模型还是本地脚本
+- **筛选历史** - 支持查看历史筛选记录
 
 ## 快速开始
 
-### 方式一：本地启动（推荐）
+### 前置要求
+
+1. **Python 3.11+**
+2. **Node.js 20+**
+3. **MiniMax API Key** - 用于调用大模型（可选，不配置则使用本地脚本）
+
+### 配置大模型API Key
 
 ```bash
-# 1. 克隆项目后，进入目录
-cd hr-screening-system
+# 方式一：设置环境变量（临时）
+export MINIMAX_API_KEY="your-api-key-here"
 
-# 2. 运行启动脚本（Windows用户可直接双击或在Git Bash中运行）
+# 方式二：创建 .env 文件（推荐）
+# 在 backend/ 目录下创建 .env 文件，内容如下：
+# MINIMAX_API_KEY=your-api-key-here
+
+# Windows PowerShell:
+# $env:MINIMAX_API_KEY="your-api-key-here"
+```
+
+### 启动服务
+
+```bash
+# 方式一：使用启动脚本（推荐）
 ./start.sh
 
-# 或手动启动：
+# 方式二：手动启动
 # 后端
 cd backend
 pip install -r requirements.txt
-python -m uvicorn main:app --reload
+# 创建 .env 文件并设置 MINIMAX_API_KEY
+python -m uvicorn main:app --reload --port 8888
 
 # 前端（新开终端）
 cd frontend
@@ -60,12 +80,16 @@ npm run dev
 - Web界面: http://localhost:3000
 - API文档: http://localhost:8888/docs
 
-### 方式二：Docker部署
+## 模型说明
 
-```bash
-# 使用Docker Compose一键启动
-docker-compose up -d
-```
+系统支持两种模型来源：
+
+| 来源 | 说明 | 配置方式 |
+|------|------|----------|
+| MiniMax M2.5 | AI大模型，匹配更精准 | 设置 `MINIMAX_API_KEY` 环境变量 |
+| 本地脚本 | 规则匹配，无API费用 | 无需配置，失败时自动降级 |
+
+当大模型调用失败时，系统会自动降级到本地脚本，并在界面上显示提示。
 
 ## 项目结构
 
@@ -74,8 +98,9 @@ hr-screening-system/
 ├── backend/                    # FastAPI后端服务
 │   ├── main.py                 # 主程序入口
 │   ├── pdf_parser.py           # PDF解析模块
+│   ├── opencode_service.py     # 核心筛选服务
 │   ├── requirements.txt        # Python依赖
-│   └── Dockerfile
+│   └── .env                    # 环境变量（需创建）
 │
 ├── frontend/                   # Vue3前端界面
 │   ├── src/
@@ -92,7 +117,8 @@ hr-screening-system/
 │   └── agents/                # 各Agent定义
 │
 ├── knowledge-base/             # 知识库
-└── samples/                   # 样本数据
+├── samples/                   # 样本数据
+└── results/                   # 筛选结果存储
 ```
 
 ## API接口
@@ -116,6 +142,8 @@ POST /api/v1/screening/file
     "experience_match": "85%",
     "education_match": "80%",
     "risk_level": "低",
+    "model_source": "minimax",
+    "model_source_display": "MiniMax M2.5 (AI大模型)",
     "advantages": [...],
     "disadvantages": [...],
     "issues": [...]
@@ -142,6 +170,49 @@ POST /api/v1/parse
 }
 ```
 
+### 获取筛选历史
+
+```bash
+GET /api/v1/history?limit=20
+
+响应:
+{
+  "success": true,
+  "data": {
+    "total": 5,
+    "items": [
+      {
+        "id": "20260228_115222_大数据开发工程师_match82",
+        "timestamp": "2026-02-28T11:52:22.500756",
+        "position": "大数据开发工程师",
+        "candidate": "范彬",
+        "match_score": 82,
+        "match_level": "高度匹配",
+        "risk_level": "中",
+        "model_source": "minimax"
+      }
+    ]
+  }
+}
+```
+
+### 获取历史详情
+
+```bash
+GET /api/v1/history/{record_id}
+
+响应:
+{
+  "success": true,
+  "data": {
+    "timestamp": "...",
+    "jd_content": "...",
+    "resume_content": "...",
+    "result": { ... }
+  }
+}
+```
+
 ## Agent 说明
 
 | Agent | 职责 | 模式 |
@@ -157,6 +228,7 @@ POST /api/v1/parse
 - `opencode.json` - Agent配置
 - `.opencode/agents/` - 各Agent的Prompt定义
 - `knowledge-base/` - 知识库配置
+- `backend/.env` - 环境变量（API Key）
 
 ## 样本数据
 

@@ -5,6 +5,28 @@ echo "================================"
 echo "HR简历筛选系统 - 本地启动"
 echo "================================"
 
+# 检查是否配置了 MiniMax API Key
+if [ -z "$MINIMAX_API_KEY" ]; then
+    # 检查 .env 文件
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    ENV_FILE="$SCRIPT_DIR/backend/.env"
+    if [ -f "$ENV_FILE" ]; then
+        source "$ENV_FILE"
+    fi
+fi
+
+if [ -z "$MINIMAX_API_KEY" ]; then
+    echo ""
+    echo "⚠️  提示: 未检测到 MiniMax API Key"
+    echo "   如需使用AI大模型，请先配置："
+    echo "   - 方式一: export MINIMAX_API_KEY='your-key'"
+    echo "   - 方式二: 在 backend/ 目录创建 .env 文件，写入: MINIMAX_API_KEY=your-key"
+    echo ""
+    echo "   不配置将使用本地脚本进行匹配（规则匹配，精度较低）"
+    echo ""
+    read -p "按回车键继续（将使用本地脚本）..."
+fi
+
 # 检查Python
 if ! command -v python3 &> /dev/null; then
     echo "错误: 需要安装Python 3.11+"

@@ -18,16 +18,19 @@
 
     <!-- 主内容 -->
     <main class="app-main">
-      <el-row :gutter="24">
-        <!-- 左侧：文件上传 -->
-        <el-col :span="10">
-          <el-card class="upload-card" shadow="hover">
-            <template #header>
-              <div class="card-header">
-                <el-icon><Upload /></el-icon>
-                <span>上传文件</span>
-              </div>
-            </template>
+      <!-- 标签页切换 -->
+      <el-tabs v-model="activeTab" class="main-tabs" @tab-change="handleTabChange">
+        <el-tab-pane label="简历筛选" name="screening">
+          <el-row :gutter="24">
+            <!-- 左侧：文件上传 -->
+            <el-col :span="10">
+              <el-card class="upload-card" shadow="hover">
+                <template #header>
+                  <div class="card-header">
+                    <el-icon><Upload /></el-icon>
+                    <span>上传文件</span>
+                  </div>
+                </template>
 
             <el-form label-position="top">
               <!-- JD文件上传 -->
@@ -176,6 +179,19 @@
                 </el-tag>
               </div>
 
+              <!-- 模型来源提示 -->
+              <div class="model-source-section">
+                <el-tag
+                  :type="result.model_source === 'minimax' ? 'success' : 'warning'"
+                  size="large"
+                >
+                  {{ result.model_source_display || '数据来源' }}
+                </el-tag>
+                <span v-if="result.model_source === 'local_script'" class="model-hint">
+                  (大模型调用失败，已使用本地脚本)
+                </span>
+              </div>
+
               <!-- 详细评分说明 -->
               <div v-if="result.score_details && result.score_details.length" class="info-section">
                 <div class="section-title">
@@ -228,6 +244,54 @@
           </el-card>
         </el-col>
       </el-row>
+        </el-tab-pane>
+        
+        <!-- 历史记录 -->
+        <el-tab-pane label="历史记录" name="history">
+          <el-card class="history-card" shadow="hover">
+            <template #header>
+              <div class="card-header">
+                <el-icon><Clock /></el-icon>
+                <span>筛选历史</span>
+                <el-button type="primary" link @click="loadHistory" :loading="historyLoading" style="margin-left: auto;">
+                  <el-icon><Refresh /></el-icon>
+                  刷新
+                </el-button>
+              </div>
+            </template>
+            
+            <el-empty v-if="!historyList.length && !historyLoading" description="暂无筛选记录" />
+            
+            <el-table v-else :data="historyList" style="width: 100%" @row-click="handleViewHistory">
+              <el-table-column prop="timestamp" label="时间" width="160">
+                <template #default="{ row }">
+                  {{ formatTime(row.timestamp) }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="position" label="职位" min-width="120" />
+              <el-table-column prop="candidate" label="候选人" width="100" />
+              <el-table-column prop="match_score" label="匹配度" width="80">
+                <template #default="{ row }">
+                  <el-tag :type="getScoreTagType(row.match_score)">{{ row.match_score }}分</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="match_level" label="等级" width="80" />
+              <el-table-column prop="risk_level" label="风险" width="60">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="getRiskType(row.risk_level)">{{ row.risk_level }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column prop="model_source" label="来源" width="100">
+                <template #default="{ row }">
+                  <el-tag size="small" :type="row.model_source === 'minimax' ? 'success' : 'warning'">
+                    {{ row.model_source_display }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+        </el-tab-pane>
+      </el-tabs>
     </main>
 
     <!-- API文档对话框 -->
@@ -262,7 +326,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage, UploadFile, UploadRawFile } from 'element-plus'
 import axios from 'axios'
 
@@ -275,9 +339,65 @@ const result = ref<any>(null)
 const showApiDoc = ref(false)
 const activeTab = ref('screening')
 
+// 历史记录
+const historyList = ref<any[]>([])
+const historyLoading = ref(false)
+const selectedHistory = ref<any>(null)
+
 // 文件上传引用
 const jdUploadRef = ref()
 const resumeUploadRef = ref()
+
+// 加载历史记录
+const loadHistory = async () => {
+  historyLoading.value = true
+  try {
+    const response = await axios.get('/api/v1/history')
+    if (response.data.success) {
+      historyList.value = response.data.data.items || []
+    }
+  } catch (error) {
+    console.error('加载历史记录失败:', error)
+    ElMessage.error('加载历史记录失败')
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+// 查看历史记录详情
+const handleViewHistory = async (row: any) => {
+  try {
+    const response = await axios.get(`/api/v1/history/${row.id}`)
+    if (response.data.success) {
+      selectedHistory.value = response.data.data.result
+      result.value = selectedHistory.value
+      activeTab.value = 'screening'
+      ElMessage.success('已加载历史记录')
+    }
+  } catch (error) {
+    console.error('加载详情失败:', error)
+    ElMessage.error('加载详情失败')
+  }
+}
+
+// 格式化时间
+const formatTime = (timestamp: string) => {
+  if (!timestamp) return ''
+  const date = new Date(timestamp)
+  return date.toLocaleString('zh-CN', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+// 切换标签页时加载历史记录
+const handleTabChange = (tab: string) => {
+  if (tab === 'history') {
+    loadHistory()
+  }
+}
 
 // 处理文件变化
 const handleJDChange = (file: UploadFile) => {
@@ -297,6 +417,13 @@ const getScoreColor = (score: number) => {
   if (score >= 80) return '#67C23A'
   if (score >= 60) return '#E6A23C'
   return '#F56C6C'
+}
+
+// 获取分数标签类型
+const getScoreTagType = (score: number) => {
+  if (score >= 80) return 'success'
+  if (score >= 60) return 'warning'
+  return 'danger'
 }
 
 // 获取风险类型
@@ -479,7 +606,21 @@ body {
 
 .risk-section {
   text-align: center;
+  margin-bottom: 12px;
+}
+
+.model-source-section {
+  text-align: center;
   margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.model-hint {
+  font-size: 12px;
+  color: #909399;
 }
 
 .info-section {
@@ -526,5 +667,33 @@ body {
     width: 100%;
     margin-bottom: 24px;
   }
+}
+
+/* 主标签页 */
+.main-tabs {
+  background: #fff;
+  border-radius: 8px;
+}
+
+.main-tabs .el-tabs__header {
+  padding: 0 16px;
+  margin: 0;
+}
+
+.main-tabs .el-tabs__content {
+  padding: 16px;
+}
+
+/* 历史记录卡片 */
+.history-card {
+  min-height: 400px;
+}
+
+.history-card .el-table {
+  cursor: pointer;
+}
+
+.history-card .el-table__row:hover {
+  background-color: #f5f7fa;
 }
 </style>

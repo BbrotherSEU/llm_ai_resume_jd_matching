@@ -267,3 +267,16 @@ describe('ResumeParser', () => {
 2. **修改Agent行为**: 编辑对应的 prompt 文件
 3. **调整评分权重**: 修改 `matcher.md` 中的权重配置
 4. **添加简历格式支持**: 在 `resume-parser.md` 中扩展解析规则
+
+---
+
+## 端口管理规范
+
+### 全局端口配置文件
+- 路径: `/home/longxia/.config/opencode/ports.json`
+- 用途: 记录所有项目的端口使用情况，避免端口冲突
+
+### 项目创建流程
+1. **创建前**: 检查 `/home/longxia/.config/opencode/ports.json` 确认端口是否被占用
+2. **创建后**: 更新 `ports.json` 记录新项目的端口信息
+3. **常用端口**: 3000, 3001, 5173 (前端), 5000, 8000, 8080, 8888 (后端)

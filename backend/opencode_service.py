@@ -17,9 +17,24 @@ if sys.platform == 'win32':
 
 import json
 import asyncio
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, Tuple
 from pathlib import Path
 from datetime import datetime
+
+
+class ModelSource:
+    """模型来源枚举"""
+    MINIMAX = "minimax"
+    LOCAL_SCRIPT = "local_script"
+    
+    @classmethod
+    def get_display_name(cls, source: str) -> str:
+        """获取显示名称"""
+        names = {
+            cls.MINIMAX: "MiniMax M2.5 (AI大模型)",
+            cls.LOCAL_SCRIPT: "本地脚本 (规则匹配)",
+        }
+        return names.get(source, source)
 
 
 def get_current_date() -> str:
@@ -58,7 +73,8 @@ class OpenCodeService:
 - education: 教育背景要求
 - other_requirements: 其他要求（数组）
 """
-        return await self._call_agent("jd-analyzer", prompt)
+        result, _ = await self._call_agent("jd-analyzer", prompt)
+        return result
     
     async def parse_resume(self, resume_content: str) -> Dict[str, Any]:
         """
@@ -83,7 +99,8 @@ class OpenCodeService:
 - skills: 技能列表
 - projects: 项目经验（可选）
 """
-        return await self._call_agent("resume-parser", prompt)
+        result, _ = await self._call_agent("resume-parser", prompt)
+        return result
     
     async def calculate_match(
         self, 
@@ -123,7 +140,8 @@ class OpenCodeService:
 - recommendation: 推荐建议
 """
         # 传递原始内容以便生成更准确的结果
-        return await self._call_agent("matcher", prompt, jd_content, resume_parsed)
+        result, _ = await self._call_agent("matcher", prompt, jd_content, resume_parsed)
+        return result
     
     async def detect_fraud(self, resume_parsed: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -148,7 +166,8 @@ class OpenCodeService:
   - type: 问题类型
 - flags: 红旗标记（可疑的点）
 """
-        return await self._call_agent("fraud-detector", prompt)
+        result, _ = await self._call_agent("fraud-detector", prompt)
+        return result
     
     async def screening(
         self, 
@@ -172,34 +191,95 @@ class OpenCodeService:
             print(f"[OpenCode] JD内容长度: {len(jd_content)}")
             print(f"[OpenCode] 简历内容长度: {len(resume_content)}")
             
-            # 1. 并行分析JD和解析简历
-            jd_task = self.analyze_jd(jd_content)
-            resume_task = self.parse_resume(resume_content)
+            # 收集所有使用的模型来源
+            model_sources: Dict[str, str] = {}
             
-            jd_analysis, resume_parsed = await asyncio.gather(
-                jd_task, resume_task
-            )
+            # 1. 分析JD - 直接调用以获取模型来源
+            jd_prompt = f"""请分析以下职位描述(JD)，提取关键信息：
+
+## 职位描述
+{jd_content}
+
+请以JSON格式输出，包含以下字段：
+- position: 职位名称
+- requirements: 关键技能要求（数组）
+- responsibilities: 主要职责（数组）
+- experience_years: 工作经验要求
+- education: 教育背景要求
+- other_requirements: 其他要求（数组）
+"""
+            jd_analysis, jd_source = await self._call_agent("jd-analyzer", jd_prompt)
+            model_sources["jd_analyzer"] = jd_source
+            print(f"[OpenCode] JD分析完成 (来源: {jd_source}): {jd_analysis.get('position', 'unknown')}")
             
-            print(f"[OpenCode] JD分析完成: {jd_analysis.get('position', 'unknown')}")
-            print(f"[OpenCode] 简历解析完成: {resume_parsed.get('name', 'unknown')}")
+            # 2. 解析简历 - 直接调用以获取模型来源
+            resume_prompt = f"""请解析以下简历，提取关键信息：
+
+## 简历内容
+{resume_content}
+
+请以JSON格式输出，包含以下字段：
+- name: 姓名
+- contact: 联系方式（电话、邮箱）
+- education: 教育背景（学校、学历、专业、时间）
+- experience: 工作经历（公司、职位、时间、职责）
+- skills: 技能列表
+- projects: 项目经验（可选）
+"""
+            resume_parsed, resume_source = await self._call_agent("resume-parser", resume_prompt)
+            model_sources["resume_parser"] = resume_source
+            print(f"[OpenCode] 简历解析完成 (来源: {resume_source}): {resume_parsed.get('name', 'unknown')}")
             
-            # 2. 计算匹配度
-            match_result = await self.calculate_match(
-                jd_analysis, 
-                resume_parsed,
-                jd_content,  # 传递原始JD内容用于动态分析
-                resume_parsed  # 传递解析后的简历用于匹配
-            )
+            # 3. 计算匹配度 - 直接调用以获取模型来源
+            match_prompt = f"""请根据以下信息计算匹配度：
+
+## JD要求
+{json.dumps(jd_analysis, ensure_ascii=False, indent=2)}
+
+## 候选人简历
+{json.dumps(resume_parsed, ensure_ascii=False, indent=2)}
+
+请以JSON格式输出匹配度评估：
+- total_score: 总分（0-100）
+- skill_match: 技能匹配度（百分比）
+- experience_match: 经验匹配度（百分比）
+- education_match: 学历匹配度（百分比）
+- match_level: 匹配等级（完美匹配/高度匹配/基本匹配/部分匹配/不匹配）
+- advantages: 优势列表
+- disadvantages: 劣势列表
+- recommendation: 推荐建议
+"""
+            match_result, match_source = await self._call_agent("matcher", match_prompt, jd_content, resume_parsed)
+            model_sources["matcher"] = match_source
+            print(f"[OpenCode] 匹配度计算完成 (来源: {match_source}): {match_result.get('total_score', 0)}")
             
-            print(f"[OpenCode] 匹配度计算完成: {match_result.get('total_score', 0)}")
-            
-            # 3. 欺诈检测（可选）
+            # 4. 欺诈检测（可选）
             fraud_result = None
+            fraud_source = ModelSource.LOCAL_SCRIPT
             if enable_fraud_check:
-                fraud_result = await self.detect_fraud(resume_parsed)
-                print(f"[OpenCode] 欺诈检测完成: {fraud_result.get('risk_level', 'unknown')}")
+                fraud_prompt = f"""请检测以下简历的异常和风险：
+
+## 简历信息
+{json.dumps(resume_parsed, ensure_ascii=False, indent=2)}
+
+请以JSON格式输出：
+- risk_level: 风险等级（高/中/低）
+- issues: 发现的问题列表
+  - description: 问题描述
+  - severity: 严重程度（high/medium/low）
+  - type: 问题类型
+- flags: 红旗标记（可疑的点）
+"""
+                fraud_result, fraud_source = await self._call_agent("fraud-detector", fraud_prompt)
+                model_sources["fraud_detector"] = fraud_source
+                print(f"[OpenCode] 欺诈检测完成 (来源: {fraud_source}): {fraud_result.get('risk_level', 'unknown')}")
             
-            # 4. 组装最终结果
+            # 确定主要模型来源（取最差的作为主要来源，优先显示大模型）
+            primary_source = ModelSource.MINIMAX
+            if ModelSource.MINIMAX not in model_sources.values():
+                primary_source = ModelSource.LOCAL_SCRIPT
+            
+            # 5. 组装最终结果
             result = {
                 "success": True,
                 "match_score": match_result.get("total_score", 0),
@@ -212,16 +292,20 @@ class OpenCodeService:
                 "disadvantages": match_result.get("disadvantages", []),
                 "recommendation": match_result.get("recommendation", ""),
                 "issues": fraud_result.get("issues", []) if fraud_result else [],
+                # 模型来源信息
+                "model_source": primary_source,
+                "model_source_display": ModelSource.get_display_name(primary_source),
+                "model_sources": model_sources,
                 # 详细数据
                 "jd_analysis": jd_analysis,
                 "resume_parsed": resume_parsed,
                 "match_details": match_result,
             }
             
-            # 5. 保存结果到本地文件
+            # 6. 保存结果到本地文件
             self._save_result(result, jd_content, resume_content)
             
-            print(f"[OpenCode] 筛选完成，返回结果: match_score={result['match_score']}")
+            print(f"[OpenCode] 筛选完成，返回结果: match_score={result['match_score']}, model_source={primary_source}")
             return result
             
         except Exception as e:
@@ -271,7 +355,7 @@ class OpenCodeService:
         except Exception as e:
             print(f"[OpenCode] 保存结果失败: {e}")
     
-    async def _call_agent(self, agent_name: str, prompt: str, jd_content: str = "", resume_parsed: Dict = None) -> Dict[str, Any]:
+    async def _call_agent(self, agent_name: str, prompt: str, jd_content: str = "", resume_parsed: Dict = None) -> Tuple[Dict[str, Any], str]:
         """
         调用OpenCode Agent
         
@@ -285,27 +369,56 @@ class OpenCodeService:
             resume_parsed: 解析后的简历信息（用于动态生成匹配结果）
             
         Returns:
-            Agent返回结果
+            (Agent返回结果, 模型来源)
         """
         print(f"[OpenCode] 调用 Agent: {agent_name}")
         
-        # 优先调用大模型
+        # 1. 尝试 MiniMax 大模型
         try:
             result = await self._call_minimax(agent_name, prompt)
             if result:
-                print(f"[OpenCode] 大模型调用成功")
-                return result
+                print(f"[OpenCode] MiniMax 大模型调用成功")
+                return result, ModelSource.MINIMAX
         except Exception as e:
-            print(f"[OpenCode] 大模型调用失败: {e}")
+            print(f"[OpenCode] MiniMax 大模型调用失败: {e}")
         
-        # 大模型失败，使用本地脚本逻辑
+        # 2. 尝试其他模型（预留接口）
+        for model_name, model_func in self._get_fallback_models():
+            try:
+                result = await model_func(agent_name, prompt)
+                if result:
+                    print(f"[OpenCode] {model_name} 调用成功")
+                    return result, model_name
+            except Exception as e:
+                print(f"[OpenCode] {model_name} 调用失败: {e}")
+        
+        # 3. 所有大模型失败，使用本地脚本逻辑
         print(f"[OpenCode] 使用本地脚本逻辑")
-        return await self._mock_agent_response(agent_name, prompt, jd_content, resume_parsed)
+        result = await self._mock_agent_response(agent_name, prompt, jd_content, resume_parsed)
+        return result, ModelSource.LOCAL_SCRIPT
+    
+    def _get_fallback_models(self):
+        """
+        获取备用模型列表（预留接口）
+        
+        返回格式: [(模型名称, 调用函数), ...]
+        """
+        # TODO: 可以在这里添加其他模型的调用
+        # 例如:
+        # - OpenAI: (ModelSource.OPENAI, self._call_openai)
+        # - Claude: (ModelSource.CLAUDE, self._call_claude)
+        # - 本地模型: (ModelSource.LOCAL_LLM, self._call_local_llm)
+        return []
     
     async def _call_minimax(self, agent_name: str, prompt: str) -> Dict[str, Any]:
-        """调用 MiniMax 大模型 API (使用 Anthropic SDK)"""
+        """
+        调用 MiniMax 大模型 API
+        
+        使用 Anthropic SDK 兼容接口调用 MiniMax-M2.5 模型
+        """
         import os
         import json
+        import re
         
         api_key = os.getenv("MINIMAX_API_KEY")
         print(f"[MiniMax] API Key 是否存在: {bool(api_key)}")
@@ -315,18 +428,13 @@ class OpenCodeService:
         
         print(f"[MiniMax] API Key 前10位: {api_key[:10]}...")
         
-        # 设置环境变量
+        # 设置环境变量，使用 Anthropic 兼容接口
         os.environ["ANTHROPIC_BASE_URL"] = "https://api.minimaxi.com/anthropic"
         os.environ["ANTHROPIC_API_KEY"] = api_key
         
-        # 使用 Anthropic SDK
-        try:
-            import anthropic
-            client = anthropic.Anthropic()
-            
-            # 构建 system prompt
-            system_prompts = {
-                "jd-analyzer": """你是一个专业的HR分析师。请分析以下职位描述(JD)，提取关键信息。
+        # 构建 system prompt
+        system_prompts = {
+            "jd-analyzer": """你是一个专业的HR分析师。请分析以下职位描述(JD)，提取关键信息。
 请以JSON格式输出，包含以下字段：
 - position: 职位名称
 - requirements: 关键技能要求（数组）
@@ -334,18 +442,18 @@ class OpenCodeService:
 - experience_years: 工作经验要求
 - education: 教育背景要求
 - other_requirements: 其他要求（数组）""",
-                
-                "resume-parser": """你是一个专业的简历解析专家。请解析以下简历，提取关键信息。
+            
+            "resume-parser": """你是一个专业的简历解析专家。请解析以下简历，提取关键信息。
 请注意：今天是{current_date}，在判断工作经历时间是否合理时，{last_year}的工作经历是过去的、合理的，不要将其误判为未来时间。
 请以JSON格式输出，包含以下字段：
 - name: 姓名
 - contact: 联系方式（电话、邮箱）
-- education: 教育背景（学校、学历，专业、时间）
+- education: 教育背景（学校、学历、专业、时间）
 - experience: 工作经历（公司、职位、时间、职责）
 - skills: 技能列表
 请直接输出JSON，不要其他内容。""",
-                
-                "matcher": """你是一个专业的HR匹配专家。请根据以下JD要求和简历信息，计算匹配度。
+            
+            "matcher": """你是一个专业的HR匹配专家。请根据以下JD要求和简历信息，计算匹配度。
 请注意：今天是{current_date}，在判断工作经历时间是否合理时，{last_year}的工作经历是过去的、合理的，不要将其误判为未来时间。
 请以JSON格式输出：
 - total_score: 总分（0-100）
@@ -357,8 +465,8 @@ class OpenCodeService:
 - disadvantages: 劣势列表
 - recommendation: 推荐建议
 请直接输出JSON，不要其他内容。""",
-                
-                "fraud-detector": """你是一个专业的简历反欺诈专家。请检测以下简历的异常和风险。
+            
+            "fraud-detector": """你是一个专业的简历反欺诈专家。请检测以下简历的异常和风险。
 请注意：今天是{current_date}，在判断工作经历时间是否合理时：
 - {last_year}的工作经历是过去的、合理的（因为今天已经是{current_date_short}）
 - {two_years_ago}及之前的工作经历更是正常的过去时间
@@ -368,25 +476,29 @@ class OpenCodeService:
 - risk_level: 风险等级（高/中/低）
 - issues: 发现的问题列表（包含description描述和severity严重程度）
 请直接输出JSON，不要其他内容。"""
-            }
-            
-            # 动态替换日期
-            current_date = get_current_date()
-            now = datetime.now()
-            current_year = now.year
-            last_year = current_year - 1
-            two_years_ago = current_year - 2
-            
-            system_prompt = system_prompts.get(agent_name, "你是一个专业的HR助手。")
-            system_prompt = system_prompt.format(
-                current_date=current_date,
-                current_date_short=f"{current_year}年{now.month}月",
-                last_year=last_year,
-                two_years_ago=two_years_ago,
-                current_year=current_year
-            )
-            
-            print(f"[MiniMax] 发送请求到 MiniMax-M2.5...")
+        }
+        
+        # 动态替换日期
+        current_date = get_current_date()
+        now = datetime.now()
+        current_year = now.year
+        last_year = current_year - 1
+        two_years_ago = current_year - 2
+        
+        system_prompt = system_prompts.get(agent_name, "你是一个专业的HR助手。")
+        system_prompt = system_prompt.format(
+            current_date=current_date,
+            current_date_short=f"{current_year}年{now.month}月",
+            last_year=last_year,
+            two_years_ago=two_years_ago,
+            current_year=current_year
+        )
+        
+        print(f"[MiniMax] 发送请求到 MiniMax-M2.5...")
+        
+        try:
+            import anthropic
+            client = anthropic.Anthropic()
             
             message = client.messages.create(
                 model="MiniMax-M2.5",
@@ -403,15 +515,14 @@ class OpenCodeService:
             # 解析返回内容
             content = ""
             for block in message.content:
-                if hasattr(block, 'text'):
+                if block.type == "text":
                     content += block.text
-                elif hasattr(block, 'thinking'):
+                elif block.type == "thinking":
                     content += block.thinking
             
             print(f"[MiniMax] 原始返回: {content[:200]}...")
             
             # 尝试解析 JSON
-            import re
             try:
                 json_match = re.search(r'\{[\s\S]*\}', content)
                 if json_match:
@@ -430,10 +541,6 @@ class OpenCodeService:
         
         print(f"[MiniMax] API Key 前10位: {api_key[:10]}...")
         
-        # MiniMax API 地址 - Coding Plan 使用不同的 endpoint
-        # 中国用户用 api.minimaxi.com/v1，国际用户用 api.minimax.io/v1
-        url = "https://api.minimaxi.com/v1/chat/completions"
-        
         # 根据 agent_name 构建不同的 system prompt
         system_prompts = {
             "jd-analyzer": """你是一个专业的HR分析师。请分析以下职位描述(JD)，提取关键信息。
@@ -446,137 +553,7 @@ class OpenCodeService:
 - other_requirements: 其他要求（数组）""",
             
             "resume-parser": """你是一个专业的简历解析专家。请解析以下简历，提取关键信息。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时，2025年的工作经历是过去的、合理的，不要将其误判为未来时间。
-请以JSON格式输出，包含以下字段：
-- name: 姓名
-- contact: 联系方式（电话、邮箱）
-- education: 教育背景（学校、学历，专业、时间）
-- experience: 工作经历（公司、职位、时间、职责）
-- skills: 技能列表
-请直接输出JSON，不要其他内容。""",
-            
-            "matcher": """你是一个专业的HR匹配专家。请根据以下JD要求和简历信息，计算匹配度。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时，2025年的工作经历是过去的、合理的，不要将其误判为未来时间。
-请以JSON格式输出：
-- total_score: 总分（0-100）
-- skill_match: 技能匹配度（百分比）
-- experience_match: 经验匹配度（百分比）
-- education_match: 学历匹配度（百分比）
-- match_level: 匹配等级（完美匹配/高度匹配/基本匹配/部分匹配/不匹配）
-- advantages: 优势列表
-- disadvantages: 劣势列表
-- recommendation: 推荐建议
-请直接输出JSON，不要其他内容。""",
-            
-            "fraud-detector": """你是一个专业的简历反欺诈专家。请检测以下简历的异常和风险。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时：
-- 2025年的工作经历是过去的、合理的（因为今天已经是2026年2月）
-- 2024年及之前的工作经历更是正常的过去时间
-- 只有2026年及之后的日期才可能是未来时间
-请基于这个时间背景来检测简历中的时间逻辑问题，不要将2025年误判为未来时间。
-请以JSON格式输出：
-- risk_level: 风险等级（高/中/低）
-- issues: 发现的问题列表（包含description描述和severity严重程度）
-请直接输出JSON，不要其他内容。"""
-        }
-        
-        # 动态替换日期
-        current_date = get_current_date()
-        now = datetime.now()
-        current_year = now.year
-        last_year = current_year - 1
-        two_years_ago = current_year - 2
-        
-        system_prompt = system_prompts.get(agent_name, "你是一个专业的HR助手。")
-        system_prompt = system_prompt.format(
-            current_date=current_date,
-            current_date_short=f"{current_year}年{now.month}月",
-            last_year=last_year,
-            two_years_ago=two_years_ago,
-            current_year=current_year
-        )
-        
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        data = {
-            "model": "MiniMax-Text-01",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt}
-            ],
-            "temperature": 0.7
-        }
-        
-        print(f"[MiniMax] 准备发送请求, url: {url}")
-        
-        try:
-            print(f"[MiniMax] 创建 session...")
-            async with aiohttp.ClientSession() as session:
-                print(f"[MiniMax] 发送 POST 请求...")
-                async with session.post(url, json=data, headers=headers) as response:
-                    print(f"[MiniMax] 收到响应, status: {response.status}")
-                    if response.status == 200:
-                        result = await response.json()
-                        print(f"[MiniMax] 响应结果: {result}")
-                        
-                        # 检查是否有余额不足等错误
-                        base_resp = result.get("base_resp", {})
-                        if base_resp.get("status_code") == 1008:
-                            print(f"[MiniMax] ❌ 错误: 余额不足! 请充值后再试. status_msg: {base_resp.get('status_msg')}")
-                            return None
-                        
-                        # 检查响应结构
-                        if not result:
-                            print(f"[MiniMax] result is None or empty")
-                            return None
-                        
-                        choices = result.get("choices")
-                        if not choices:
-                            print(f"[MiniMax] 没有choices字段: {result}")
-                            return None
-                        
-                        # 解析大模型返回的内容
-                        content = choices[0].get("message", {}).get("content", "")
-                        print(f"[MiniMax] 原始返回: {content[:200]}...")
-                        
-                        # 尝试解析 JSON
-                        try:
-                            # 尝试提取 JSON（可能包含在 ``` json ``` 中）
-                            import re
-                            json_match = re.search(r'\{[\s\S]*\}', content)
-                            if json_match:
-                                return json.loads(json_match.group())
-                            return json.loads(content)
-                        except json.JSONDecodeError as e:
-                            print(f"[MiniMax] JSON解析失败: {e}")
-                            return None
-                    else:
-                        error = await response.text()
-                        print(f"[MiniMax] API错误: {response.status} - {error}")
-                        return None
-        except Exception as e:
-            print(f"[MiniMax] 请求失败: {e}")
-            return None
-        
-        # MiniMax API 地址
-        url = "https://api.minimax.chat/v1/text/chatcompletion_v2"
-        
-        # 根据 agent_name 构建不同的 system prompt
-        system_prompts = {
-            "jd-analyzer": """你是一个专业的HR分析师。请分析以下职位描述(JD)，提取关键信息。
-请以JSON格式输出，包含以下字段：
-- position: 职位名称
-- requirements: 关键技能要求（数组）
-- responsibilities: 主要职责（数组）
-- experience_years: 工作经验要求
-- education: 教育背景要求
-- other_requirements: 其他要求（数组）""",
-            
-            "resume-parser": """你是一个专业的简历解析专家。请解析以下简历，提取关键信息。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时，2025年的工作经历是过去的、合理的，不要将其误判为未来时间。
+请注意：今天是{current_date}，在判断工作经历时间是否合理时，{last_year}的工作经历是过去的、合理的，不要将其误判为未来时间。
 请以JSON格式输出，包含以下字段：
 - name: 姓名
 - contact: 联系方式（电话、邮箱）
@@ -586,7 +563,7 @@ class OpenCodeService:
 请直接输出JSON，不要其他内容。""",
             
             "matcher": """你是一个专业的HR匹配专家。请根据以下JD要求和简历信息，计算匹配度。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时，2025年的工作经历是过去的、合理的，不要将其误判为未来时间。
+请注意：今天是{current_date}，在判断工作经历时间是否合理时，{last_year}的工作经历是过去的、合理的，不要将其误判为未来时间。
 请以JSON格式输出：
 - total_score: 总分（0-100）
 - skill_match: 技能匹配度（百分比）
@@ -599,11 +576,11 @@ class OpenCodeService:
 请直接输出JSON，不要其他内容。""",
             
             "fraud-detector": """你是一个专业的简历反欺诈专家。请检测以下简历的异常和风险。
-请注意：今天是2026年2月28日，在判断工作经历时间是否合理时：
-- 2025年的工作经历是过去的、合理的（因为今天已经是2026年2月）
-- 2024年及之前的工作经历更是正常的过去时间
-- 只有2026年及之后的日期才可能是未来时间
-请基于这个时间背景来检测简历中的时间逻辑问题，不要将2025年误判为未来时间。
+请注意：今天是{current_date}，在判断工作经历时间是否合理时：
+- {last_year}的工作经历是过去的、合理的（因为今天已经是{current_date_short}）
+- {two_years_ago}及之前的工作经历更是正常的过去时间
+- 只有{current_year}年及之后的日期才可能是未来时间
+请基于这个时间背景来检测简历中的时间逻辑问题，不要将{last_year}误判为未来时间。
 请以JSON格式输出：
 - risk_level: 风险等级（高/中/低）
 - issues: 发现的问题列表（包含description描述和severity严重程度）
@@ -626,6 +603,9 @@ class OpenCodeService:
             current_year=current_year
         )
         
+        # MiniMax API 地址（使用 v2 接口）
+        url = "https://api.minimax.chat/v1/text/chatcompletion_v2"
+        
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json"
@@ -640,14 +620,21 @@ class OpenCodeService:
             "temperature": 0.7
         }
         
+        print(f"[MiniMax] 发送请求到 MiniMax-Text-01...")
+        
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json=data, headers=headers, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                async with session.post(
+                    url, 
+                    json=data, 
+                    headers=headers, 
+                    timeout=aiohttp.ClientTimeout(total=60)
+                ) as response:
                     print(f"[MiniMax] 响应状态: {response.status}")
                     
                     if response.status == 200:
                         result = await response.json()
-                        print(f"[MiniMax] 响应内容: {result}")
+                        print(f"[MiniMax] 响应成功")
                         
                         if not result:
                             print(f"[MiniMax] 响应为空")
@@ -656,16 +643,14 @@ class OpenCodeService:
                         # 解析大模型返回的内容
                         choices = result.get("choices")
                         if not choices:
-                            print(f"[MiniMax] 没有choices字段")
+                            print(f"[MiniMax] 没有choices字段: {result}")
                             return None
-                            
+                        
                         content = choices[0].get("message", {}).get("content", "")
                         print(f"[MiniMax] 原始返回: {content[:200]}...")
                         
                         # 尝试解析 JSON
                         try:
-                            # 尝试提取 JSON（可能包含在 ```json ``` 中）
-                            import re
                             json_match = re.search(r'\{[\s\S]*\}', content)
                             if json_match:
                                 return json.loads(json_match.group())
