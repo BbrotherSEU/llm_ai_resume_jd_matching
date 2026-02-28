@@ -176,6 +176,17 @@
                 </el-tag>
               </div>
 
+              <!-- 详细评分说明 -->
+              <div v-if="result.score_details && result.score_details.length" class="info-section">
+                <div class="section-title">
+                  <span style="font-size: 16px;">📊</span>
+                  评分详情
+                </div>
+                <ul class="info-list score-details">
+                  <li v-for="(detail, idx) in result.score_details" :key="idx">{{ detail }}</li>
+                </ul>
+              </div>
+
               <!-- 优势 -->
               <div v-if="result.advantages && result.advantages.length" class="info-section">
                 <div class="section-title">
@@ -498,6 +509,14 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.info-list.score-details li {
+  color: #909399;
+  font-size: 13px;
+  border-left: 2px solid #409EFF;
+  padding-left: 8px;
+  margin-bottom: 4px;
 }
 
 /* 响应式 */

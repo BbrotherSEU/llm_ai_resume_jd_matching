@@ -58,7 +58,7 @@ npm run dev
 
 启动后访问：
 - Web界面: http://localhost:3000
-- API文档: http://localhost:8000/docs
+- API文档: http://localhost:8888/docs
 
 ### 方式二：Docker部署
 
